@@ -12,7 +12,7 @@ import Test.Spec.Runner (runSpec)
 newtype RedisHGetAll
   = RedisHGetAll { key :: String }
 
-instance redisHGetAllQuery :: IsQuery RedisHGetAll ( field :: String, value :: String ) where
+instance redisHGetAllQuery :: IsQuery RedisHGetAll Array ( field :: String, value :: String ) where
   renderQuery (RedisHGetAll rec) = genericQuery "redisHGetAll" rec
 
 main :: Effect Unit

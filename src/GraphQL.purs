@@ -8,15 +8,15 @@ import Prim.RowList as RL
 import Record as Record
 import Type.Proxy (Proxy(..))
 
-class IsQuery (t :: Type) (r :: Row Type) | t -> r where
+class IsQuery (t :: Type) (c :: Type -> Type) (r :: Row Type) | t -> c r where
   renderQuery :: t -> String
 
 instance selectedQuery ::
   ( RL.RowToList row rl
-  , IsQuery query out
+  , IsQuery query cons out
   , SelectedRecord out rl () result
   ) =>
-  IsQuery (Selected query (Record row)) result where
+  IsQuery (Selected query (Record row)) cons result where
   renderQuery (Selected { query }) =
     renderQuery query
       <> "{ "
@@ -53,9 +53,9 @@ class QueryRecord (rl :: RowList Type) (row :: Row Type) (rec :: Row Type) | rl 
 instance queryRecordCons ::
   ( IsSymbol name
   , Row.Cons name ty trash row
-  , IsQuery ty out
+  , IsQuery ty cons out
   , QueryRecord tail row from'
-  , Row.Cons name (Record out) from' to
+  , Row.Cons name (cons (Record out)) from' to
   ) =>
   QueryRecord (RL.Cons name ty tail) row to where
   renderQueryRecord _ rec =
