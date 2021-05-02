@@ -8,10 +8,10 @@ import Prim.RowList as RL
 import Record as Record
 import Type.Proxy (Proxy(..))
 
-class IsQuery (t :: Type) (c :: Type -> Type) (r :: Type) | t -> c r where
+class Query (t :: Type) (c :: Type -> Type) (r :: Type) | t -> c r where
   renderQuery :: t -> String
 
-class IsRecordQuery (t :: Type) (c :: Type -> Type) (r :: Row Type) | t -> c r where
+class RecordQuery (t :: Type) (c :: Type -> Type) (r :: Row Type) | t -> c r where
   renderRecordQuery :: t -> String
 
 newtype Selected q r
@@ -19,10 +19,10 @@ newtype Selected q r
 
 instance selectedQuery ::
   ( RL.RowToList row rl
-  , IsRecordQuery query cons rec
+  , RecordQuery query cons rec
   , SelectedRecord rec rl result
   ) =>
-  IsQuery (Selected query (Record row)) cons (Record result) where
+  Query (Selected query (Record row)) cons (Record result) where
   renderQuery (Selected { query }) =
     renderRecordQuery query
       <> "{ "
@@ -56,7 +56,7 @@ class QueryRecord (rl :: RowList Type) (row :: Row Type) (rec :: Row Type) | rl 
 instance queryRecordCons ::
   ( IsSymbol name
   , Row.Cons name ty trash row
-  , IsQuery ty cons out
+  , Query ty cons out
   , QueryRecord tail row from'
   , Row.Cons name (cons out) from' to
   ) =>
@@ -107,14 +107,14 @@ instance genericParametersNil :: GenericParameters RL.Nil row where
 select :: ∀ q r. q -> r -> Selected q r
 select query selector = Selected { query, selector }
 
-infixl 4 select as ==>
+infixl 4 select as <:
 
 data N :: Symbol -> Type
 data N a
   = N
 
-genericQuery :: ∀ row rl. RL.RowToList row rl => GenericParameters rl row => String -> Record row -> String
-genericQuery name rec = name <> "(" <> renderParameterRecord (Proxy :: Proxy rl) rec <> ")"
+defaultQuery :: ∀ row rl. RL.RowToList row rl => GenericParameters rl row => String -> Record row -> String
+defaultQuery name rec = name <> "(" <> renderParameterRecord (Proxy :: Proxy rl) rec <> ")"
 
 render :: ∀ row row' rl. RL.RowToList row rl => QueryRecord rl row row' => Record row -> String
 render rec = "query { " <> renderQueryRecord (Proxy :: Proxy rl) rec <> "}"
