@@ -8,35 +8,38 @@ import Prim.RowList as RL
 import Record as Record
 import Type.Proxy (Proxy(..))
 
-class IsQuery (t :: Type) (c :: Type -> Type) (r :: Row Type) | t -> c r where
+class IsQuery (t :: Type) (c :: Type -> Type) (r :: Type) | t -> c r where
   renderQuery :: t -> String
 
-instance selectedQuery ::
-  ( RL.RowToList row rl
-  , IsQuery query cons out
-  , SelectedRecord out rl () result
-  ) =>
-  IsQuery (Selected query (Record row)) cons result where
-  renderQuery (Selected { query }) =
-    renderQuery query
-      <> "{ "
-      <> renderSelector (Proxy :: Proxy out) (Proxy :: Proxy rl)
-      <> "}"
+class IsRecordQuery (t :: Type) (c :: Type -> Type) (r :: Row Type) | t -> c r where
+  renderRecordQuery :: t -> String
 
 newtype Selected q r
   = Selected { query :: q, selector :: r }
 
-class SelectedRecord (base :: Row Type) (rl :: RL.RowList Type) (row :: Row Type) (rec :: Row Type) | base rl -> row rec where
+instance selectedQuery ::
+  ( RL.RowToList row rl
+  , IsRecordQuery query cons rec
+  , SelectedRecord rec rl result
+  ) =>
+  IsQuery (Selected query (Record row)) cons (Record result) where
+  renderQuery (Selected { query }) =
+    renderRecordQuery query
+      <> "{ "
+      <> renderSelector (Proxy :: Proxy rec) (Proxy :: Proxy rl)
+      <> "}"
+
+class SelectedRecord (base :: Row Type) (rl :: RL.RowList Type) (rec :: Row Type) | base rl -> rec where
   renderSelector :: Proxy base -> Proxy rl -> String
 
 instance selectedRecordCons ::
   ( IsSymbol name
   , IsSymbol renamed
   , Row.Cons name ty trash base
-  , SelectedRecord base tail row from'
+  , SelectedRecord base tail from'
   , Row.Cons renamed ty from' to
   ) =>
-  SelectedRecord base (RL.Cons name (N renamed) tail) row to where
+  SelectedRecord base (RL.Cons renamed (N name) tail) to where
   renderSelector _ _ =
     reflectSymbol (Proxy :: Proxy renamed)
       <> ": "
@@ -44,7 +47,7 @@ instance selectedRecordCons ::
       <> ", "
       <> renderSelector (Proxy :: Proxy base) (Proxy :: Proxy tail)
 
-instance selectedRecordNil :: SelectedRecord base RL.Nil row () where
+instance selectedRecordNil :: SelectedRecord base RL.Nil () where
   renderSelector _ _ = mempty
 
 class QueryRecord (rl :: RowList Type) (row :: Row Type) (rec :: Row Type) | rl -> row rec where
@@ -55,7 +58,7 @@ instance queryRecordCons ::
   , Row.Cons name ty trash row
   , IsQuery ty cons out
   , QueryRecord tail row from'
-  , Row.Cons name (cons (Record out)) from' to
+  , Row.Cons name (cons out) from' to
   ) =>
   QueryRecord (RL.Cons name ty tail) row to where
   renderQueryRecord _ rec =

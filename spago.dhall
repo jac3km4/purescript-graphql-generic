@@ -5,6 +5,7 @@
     , "record"
     , "psci-support"
     -- test deps
+    , "identity"
     , "spec"
     , "aff"
     ]
